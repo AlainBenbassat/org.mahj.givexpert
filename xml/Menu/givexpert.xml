@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<menu>
+  <item>
+    <path>civicrm/givexpert-admin</path>
+    <page_callback>CRM_Givexpert_Form_GivexpertAdmin</page_callback>
+    <title>GivexpertAdmin</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
+</menu>
