@@ -10,9 +10,8 @@ function _civicrm_api3_givexpert_Syncorders_spec(&$spec) {
 
 function civicrm_api3_givexpert_Syncorders($params) {
   try {
-    $convertedParams = givexpert_convertParams($params);
-
     $orderSynchronizer = new CRM_Givexpert_OrderSync();
+    $convertedParams = givexpert_convertParams($params);
     $orderSynchronizer->execute($convertedParams);
 
     $returnValues = 'TEST'; // TODO, return number of contribs created?
@@ -48,5 +47,6 @@ function givexpert_convertParams($params) {
 
   return $paramArr;
 }
+
 
 

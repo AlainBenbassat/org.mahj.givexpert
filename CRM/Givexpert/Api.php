@@ -6,9 +6,9 @@ class CRM_Givexpert_Api {
   private $settings;
   private $httpClient;
 
-  public function __construct() {
+  public function __construct($settings) {
     $this->httpClient = new CRM_Utils_HttpClient();
-    $this->settings = new CRM_Givexpert_Settings();
+    $this->settings = $settings;
   }
 
   public function getOrders($params) {
