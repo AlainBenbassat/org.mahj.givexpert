@@ -1,8 +1,8 @@
 <?php
 
 class CRM_Givexpert_Contact {
-  private $mainContactId = null;
-  private $secondContactId = null;
+  public $mainContactId = null;
+  public $secondContactId = null;
 
   public function __construct($order) {
     $this->mainContactId = $this->getMainContactId($order);
@@ -176,6 +176,8 @@ class CRM_Givexpert_Contact {
 
   private function extractIndividualAsParam($contact) {
     $individual = [];
+
+    $individual['contact_type'] = 'Individual';
 
     if ($contact->title == 'M') {
       $individual['prefix_id'] = 3;

@@ -12,9 +12,9 @@ function civicrm_api3_givexpert_Syncorders($params) {
   try {
     $orderSynchronizer = new CRM_Givexpert_OrderSync();
     $convertedParams = givexpert_convertParams($params);
-    $orderSynchronizer->execute($convertedParams);
+    $n = $orderSynchronizer->execute($convertedParams);
 
-    $returnValues = 'TEST'; // TODO, return number of contribs created?
+    $returnValues = "Nombre de dons / contributions: $n";
     return civicrm_api3_create_success($returnValues, $params, 'Givexpert', 'Syncorders');
   }
   catch (Exception $e)  {

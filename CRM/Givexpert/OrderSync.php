@@ -8,17 +8,22 @@ class CRM_Givexpert_OrderSync {
   }
 
   public function execute($params) {
+    $n = 0;
+
     // make sure we have a param
     if ($this->isEmptyParams($params)) {
       $params = $this->getDefaultMinIdParam();
     }
 
-    $api = new CRM_Givexpert_Api();
+    $api = new CRM_Givexpert_Api($this->settings);
     $orders = $api->getOrders($params);
 
     foreach ($orders as $order) {
       $this->processOrder($order);
+      $n++;
     }
+
+    return $n;
   }
 
   private function isEmptyParams($params) {
@@ -46,6 +51,7 @@ class CRM_Givexpert_OrderSync {
       return;
     }
 
+    // create the contact from the order data
     $contact = new CRM_Givexpert_Contact($order);
 
     // process the order according to its type
@@ -122,9 +128,11 @@ class CRM_Givexpert_OrderSync {
   }
 
   private function processGift($contact, $order) {
+    $contrib = new CRM_Givexpert_Contribution($this->settings);
+
     foreach ($order->items as $item) {
       if ($item->purpose == 'D') {
-        CRM_Givexpert_Contribution::createDonationContribution($contact->mainContactId, $order->id, $order->date, $order->amount, $order->currency, $this->settings->getCustomFieldIdGiveXpertId());
+        $contrib->createDonationContribution($contact->mainContactId, $order->id, $order->date, $order->amount, $order->currency);
       }
     }
   }

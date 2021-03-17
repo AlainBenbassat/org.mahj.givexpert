@@ -1,7 +1,15 @@
 <?php
 
 class CRM_Givexpert_Contribution {
-  public static function createDonationContribution($contactId, $giveXperId, $date, $amount, $currency, $customFieldId) {
+  private $settings;
+
+  public function __construct($settings) {
+    $this->settings = $settings;
+  }
+
+  public function createDonationContribution($contactId, $giveXperId, $date, $amount, $currency) {
+    $customField = $this->settings->getCustomFieldIdGiveXpertId();
+
     $params = [
       'sequential' => 1,
       'contact_id' => $contactId,
@@ -9,17 +17,13 @@ class CRM_Givexpert_Contribution {
       'total_amount' => $amount,
       'currency' => $currency,
       'financial_type_id' => 1, // TODO check if this is always donation
+      'custom_' . $customField['id'] => $giveXperId,
     ];
 
     $result = civicrm_api3('Contribution', 'create', $params);
+    $contribId = $result['values'][0]['id'];
 
-    $params = [
-      'entity_id' => $result['values'][0]['id'],
-      "custom_$customFieldId" => $giveXperId,
-    ];
-    civicrm_api3('CustomValue', 'create', $params);
-
-    return $result['values'][0]['id'];
+    return $contribId;
   }
 
   private function createSoftContribution($order, $contributionId, $softContributionContactId) {
@@ -35,5 +39,7 @@ class CRM_Givexpert_Contribution {
     return $result['values'][0]['id'];
   }
 
+  private function saveGiveXpertId($contribId, $giveXperId) {
 
+  }
 }
