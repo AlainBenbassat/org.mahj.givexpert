@@ -16,8 +16,8 @@ class CRM_Givexpert_OrderSync {
     }
 
     $api = new CRM_Givexpert_Api($this->settings);
-    $orders = $api->getOrders($params);
 
+    $orders = $api->getOrders($params);
     foreach ($orders as $order) {
       $this->processOrder($order);
       $n++;
@@ -103,7 +103,7 @@ class CRM_Givexpert_OrderSync {
         return TRUE;
       }
 
-      if (property_exists($item, 'deductable_amount') && $item->deductable_amount > 0) {
+      if (property_exists($item, 'deductible_amount') && $item->deductible_amount > 0) {
         return TRUE;
       }
     }
@@ -111,6 +111,15 @@ class CRM_Givexpert_OrderSync {
     return FALSE;
   }
 
+  /*
+   * TODO
+   *
+   * Aussi, concernant Stripe, je viens de faire un test de transaction régulier.
+   * L'initialisation de paiement est renvoyée dans l'API avec les informations suivantes :
+   * - amount : montant du don
+   * - engagement : M
+   * Par la suite, les récurrences auront juste l'engagement qui passe de M à R.
+   */
   private function isOrderRecurringGift($order) {
     if ($order->purpose == 'D' && $order->engagement == 'R') {
       return TRUE;
@@ -131,8 +140,14 @@ class CRM_Givexpert_OrderSync {
     $contrib = new CRM_Givexpert_Contribution($this->settings);
 
     foreach ($order->items as $item) {
+      // check for regular donation
       if ($item->purpose == 'D') {
-        $contrib->createDonationContribution($contact->mainContactId, $order->id, $order->date, $order->amount, $order->currency);
+        $contrib->createDonationContribution($contact->mainContactId, $order->id, $order->date, $item->amount, $order->currency);
+      }
+
+      // check for donation embedded in membership
+      if ($item->purpose == 'R' && property_exists($item, 'deductible_amount') && $item->deductible_amount > 0) {
+        $contrib->createDonationContribution($contact->mainContactId, $order->id, $order->date, $item->deductible_amount, $order->currency);
       }
     }
   }
@@ -142,7 +157,32 @@ class CRM_Givexpert_OrderSync {
   }
 
   private function processMembership($contact, $order) {
+    $contrib = new CRM_Givexpert_Contribution($this->settings);
+    $membership = new CRM_Givexpert_Membership($this->settings);
 
+    foreach ($order->items as $item) {
+      if ($item->purpose == 'R') {
+        // TODO create method "checkRelationship" and call with contact1, contact2, code
+        // based on relationship_type_id, create the relationhsip
+
+        // create the membership
+        $membershipId = $membership->createOrUpdate($contact->mainContactId, $item->code, $order->date);
+
+        // create a contribution and link it to the membership
+        $contrib->createMembershipContribution($membershipId, $contact->mainContactId, $order->id, $order->date, $this->getMembershipAmount($item), $order->currency);
+      }
+    }
+  }
+
+  private function getMembershipAmount($item) {
+    if (property_exists($item, 'deductible_amount')) {
+      $amount = $item->amount - $item->deductible_amount;
+    }
+    else {
+      $amount = $item->amount;
+    }
+
+    return $amount;
   }
 
 }
