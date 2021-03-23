@@ -27,6 +27,27 @@ class CRM_Givexpert_Contribution {
     return $contribId;
   }
 
+  public function createRecurringDonationContribution($source, $contactId, $giveXperId, $date, $amount, $currency) {
+    $customField = $this->settings->getCustomFieldIdGiveXpertId();
+
+    $params = [
+      'sequential' => 1,
+      'contact_id' => $contactId,
+      'receive_date' => $date,
+      'total_amount' => $amount,
+      'currency' => $currency,
+      'financial_type_id' => 1, // donation
+      'payment_instrument_id' => 1, // credit card
+      'source' => $source,
+      'custom_' . $customField['id'] => $giveXperId,
+    ];
+
+    $result = civicrm_api3('Contribution', 'create', $params);
+    $contribId = $result['values'][0]['id'];
+
+    return $contribId;
+  }
+
   public function createMembershipContribution($membershipId, $contactId, $giveXperId, $date, $amount, $currency) {
     $customField = $this->settings->getCustomFieldIdGiveXpertId();
 

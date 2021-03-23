@@ -6,4 +6,10 @@
     <title>GivexpertAdmin</title>
     <access_arguments>access CiviCRM</access_arguments>
   </item>
+  <item>
+    <path>civicrm/givexpert-run</path>
+    <page_callback>CRM_Givexpert_Page_Run</page_callback>
+    <title>Run</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
 </menu>

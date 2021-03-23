@@ -88,6 +88,7 @@ class CRM_Givexpert_OrderSync {
 
   private function isOrderGift($order) {
     // check  for a one-time gift
+    // purpose = "D" is "donation"
     if ($order->purpose == 'D') {
       if ($order->engagement == 'S') {
         return TRUE;
@@ -111,17 +112,8 @@ class CRM_Givexpert_OrderSync {
     return FALSE;
   }
 
-  /*
-   * TODO
-   *
-   * Aussi, concernant Stripe, je viens de faire un test de transaction régulier.
-   * L'initialisation de paiement est renvoyée dans l'API avec les informations suivantes :
-   * - amount : montant du don
-   * - engagement : M
-   * Par la suite, les récurrences auront juste l'engagement qui passe de M à R.
-   */
   private function isOrderRecurringGift($order) {
-    if ($order->purpose == 'D' && $order->engagement == 'R') {
+    if ($order->purpose == 'D' && ($order->engagement == 'M' || $order->engagement == 'R')) {
       return TRUE;
     }
 
@@ -153,7 +145,14 @@ class CRM_Givexpert_OrderSync {
   }
 
   private function processRecurringGift($contact, $order) {
+    $contrib = new CRM_Givexpert_Contribution($this->settings);
 
+    if ($order->engagement == 'M') {
+      $contrib->createRecurringDonationContribution('récurrent (premier)', $contact->mainContactId, $order->id, $order->date, $order->amount, $order->currency);
+    }
+    else {
+      $contrib->createRecurringDonationContribution('récurrent', $contact->mainContactId, $order->id, $order->date, $order->amount, $order->currency);
+    }
   }
 
   private function processMembership($contact, $order) {
@@ -161,15 +160,21 @@ class CRM_Givexpert_OrderSync {
     $membership = new CRM_Givexpert_Membership($this->settings);
 
     foreach ($order->items as $item) {
+      // purpose = "R" is "adhésion/membership"
       if ($item->purpose == 'R') {
-        // TODO create method "checkRelationship" and call with contact1, contact2, code
-        // based on relationship_type_id, create the relationhsip
+        if (!empty($contact->secondContactId)) {
+          // based on the membership type, a relationship between the two contacts must exist
+          $relationshipTypeid = $membership->getMembershipRelationshipTypeId($item->code);
+          $contact->createRelationshipIfNotExists($contact->mainContactId, $contact->secondContactId, $relationshipTypeid);
+        }
 
         // create the membership
-        $membershipId = $membership->createOrUpdate($contact->mainContactId, $item->code, $order->date);
+        $membershipId = $membership->createOrUpdate($contact->mainContactId, $contact->secondContactId, $item->code, $order->date);
 
         // create a contribution and link it to the membership
         $contrib->createMembershipContribution($membershipId, $contact->mainContactId, $order->id, $order->date, $this->getMembershipAmount($item), $order->currency);
+
+        // update the
       }
     }
   }

@@ -11,6 +11,54 @@ class CRM_Givexpert_Contact {
     }
   }
 
+  public function createRelationshipIfNotExists($contact1, $contact2, $relationshipTypeid) {
+    if (!$this->hasRelationship($contact1, $contact2, $relationshipTypeid)) {
+      $this->createRelationship($contact1, $contact2, $relationshipTypeid);
+    }
+  }
+
+  private function hasRelationship($contact1, $contact2, $relationshipTypeId) {
+    $sql = "
+      select
+        id
+      from
+        civicrm_relationship
+      where
+        relationship_type_id = %3
+      and
+      (
+        (contact_id_a = %1 and contact_id_b = %2)
+      or
+        (contact_id_a = %2 and contact_id_b = %1)
+      )
+      and
+        is_active = 1
+    ";
+    $sqlParams = [
+      1 => [$contact1, 'Integer'],
+      2 => [$contact2, 'Integer'],
+      3 => [$relationshipTypeId, 'Integer'],
+    ];
+    $dao = CRM_Core_DAO::executeQuery($sql, $sqlParams);
+    if ($dao->fetch()) {
+      return TRUE;
+    }
+    else {
+      return FALSE;
+    }
+  }
+
+  private function createRelationship($contact1, $contact2, $relationshipTypeid) {
+    $params = [
+      'contact_id_a' => $contact1,
+      'contact_id_b' => $contact2,
+      'relationship_type_id' => $relationshipTypeid,
+      'start_date' => date('Y-m-d'),
+      'is_active' => 1,
+    ];
+    civicrm_api3('Relationship', 'create', $params);
+  }
+
   private function hasSecondContact($order) {
     if ($this->isSecondContactEmpty($order)) {
       return FALSE;
@@ -55,7 +103,7 @@ class CRM_Givexpert_Contact {
     $emailParam = $this->extractEmailAsParam($order->contact);
     $phoneParam = $this->extractPhoneAsParam($order->contact);
 
-    if ($order->is_orga) {
+    if ($order->contact->is_orga) {
       $contactId = $this->getOrganizationId($order->contact->organism, $addressParam);
 
       $individualParam['employer_id'] = $contactId;
@@ -69,6 +117,16 @@ class CRM_Givexpert_Contact {
   }
 
   private function getSecondContactId($order) {
+    $contactId = 0;
+
+    $addressParam = $this->extractAddressAsParam($order->contact_payer);
+    $individualParam = $this->extractIndividualAsParam($order->contact_payer);
+    $emailParam = $this->extractEmailAsParam($order->contact_payer);
+    $phoneParam = $this->extractPhoneAsParam($order->contact_payer);
+
+    $contactId = $this->getIndividualId($individualParam, $addressParam, $emailParam, $phoneParam);
+
+    return $contactId;
   }
 
   private function getOrganizationId($name, $addressParam) {
@@ -83,7 +141,14 @@ class CRM_Givexpert_Contact {
   private function getIndividualId($individualParam, $addressParam, $emailParam, $phoneParam) {
     $contactId = $this->findIndividualIdByNameAndEmail($individualParam, $emailParam);
     if ($contactId == 0) {
+      $contactId = $this->findIndividualIdByNameAndEmailReversed($individualParam, $emailParam);
+    }
+
+    if ($contactId == 0) {
       $contactId = $this->createIndividual($individualParam, $addressParam, $emailParam, $phoneParam);
+    }
+    else {
+      $this->createOrUpdateAddress($contactId, $addressParam);
     }
 
     return $contactId;
@@ -149,6 +214,39 @@ class CRM_Givexpert_Contact {
     return 0;
   }
 
+  private function findIndividualIdByNameAndEmailReversed($individualParam, $emailParam) {
+    $sql = "
+      select
+        c.id
+      from
+        civicrm_contact c
+      inner join
+        civicrm_email e on c.id = e.contact_id
+      where
+        c.first_name = %1
+      and
+        c.last_name = %2
+      and
+        e.email = %3
+      and
+        is_deleted = 0
+      and
+        contact_type = 'Individual'
+    ";
+    $sqlParams = [
+      1 => [$individualParam['last_name'], 'String'],
+      2 => [$individualParam['first_name'], 'String'],
+      3 => [$emailParam['email'], 'String'],
+    ];
+
+    $dao = CRM_Core_DAO::executeQuery($sql, $sqlParams);
+    if ($dao->fetch()) {
+      return $dao->id;
+    }
+
+    return 0;
+  }
+
   private function createIndividual($individualParam, $addressParam, $emailParam, $phoneParam) {
     $contact = civicrm_api3('Contact', 'create', $individualParam);
     $contactId = $contact['values'][0]['id'];
@@ -166,6 +264,7 @@ class CRM_Givexpert_Contact {
     $address['location_type_id'] = $contact->is_orga ? 2 : 1;
     $address['street_address'] = $contact->address_1;
     $address['supplemental_address_1'] = $contact->address_2;
+    $address['supplemental_address_2'] = '';
     $address['postal_code'] = $contact->zip_code;
     $address['city'] = $contact->city;
     $address['country_id'] = $this->getCountryId($contact->country);
@@ -227,6 +326,22 @@ class CRM_Givexpert_Contact {
       $addressParam['contact_id'] = $contactId;
       civicrm_api3('Address', 'create', $addressParam);
     }
+  }
+
+  private function createOrUpdateAddress($contactId, $addressParam) {
+    if ($addressParam) {
+      // if the contact has a primary address, add the address id so the create will perform an update
+      $addressId = $this->getPrimaryAddressId($contactId);
+      if ($addressId) {
+        $addressParam['id'] = $addressId;
+      }
+      $this->createAddress($contactId, $addressParam);
+    }
+  }
+
+  private function getPrimaryAddressId($contactId) {
+    $sql = "select id from civicrm_address where contact_id = $contactId and is_primary = 1";
+    return CRM_Core_DAO::singleValueQuery($sql);
   }
 
   private function createEmail($contactId, $emailParam) {
