@@ -4,13 +4,19 @@ class CRM_Givexpert_Membership {
   private $settings;
   private $MEMBERSHIP_AMI_DUO = 2;
   private $MEMBERSHIP_AMI_COUPLE = 3;
+  private $MEMBERSHIP_AMI_DONATEUR = 6;
   private $MEMBERSHIP_AMI_DONATEUR_DUO = 7;
+  private $MEMBERSHIP_AMI_BIENFAITEUR = 8;
+  private $MEMBERSHIP_AMI_MECENE = 9;
   private $MEMBERSHIP_CARTE_BIBLIOTHEQUE = 11;
   private $MEMBERSHIP_STATUS_NEW = 1;
   private $MEMBERSHIP_STATUS_CURRENT = 2;
   private $MEMBERSHIP_STATUS_CANCELLED = 6;
   private $RELATIONSHIP_TYPE_SPOUSE = 2;
   private $RELATIONSHIP_TYPE_FRIEND = 12;
+
+  public $membershipGreetingMale = '';
+  public $membershipGreetingFemale = '';
 
   public function __construct($settings) {
     $this->settings = $settings;
@@ -36,6 +42,8 @@ class CRM_Givexpert_Membership {
       $this->terminateAllMembershipsButSpecified($contactId, $date, $membershipId);
       $membershipId = $this->create($contactId, $membershipTypeId, $date);
     }
+
+    $this->fillMembershipGreeting($membershipTypeId);
 
     return $membershipId;
   }
@@ -169,5 +177,26 @@ class CRM_Givexpert_Membership {
       2 => [$dateWithoutTime, 'String'],
     ];
     return CRM_Core_DAO::singleValueQuery($sql, $sqlParams);
+  }
+
+  private function fillMembershipGreeting($membershipTypeId) {
+    switch ($membershipTypeId) {
+      case $this->MEMBERSHIP_AMI_DONATEUR:
+      case $this->MEMBERSHIP_AMI_DONATEUR_DUO:
+        $this->membershipGreetingMale = 'Cher Ami donateur';
+        $this->membershipGreetingFemale = 'Chère Amie donatrice';
+        break;
+      case $this->MEMBERSHIP_AMI_BIENFAITEUR:
+        $this->membershipGreetingMale = 'Cher Ami bienfaiteur';
+        $this->membershipGreetingFemale = 'Chère Amie bienfaitrice';
+        break;
+      case $this->MEMBERSHIP_AMI_MECENE:
+        $this->membershipGreetingMale = 'Cher Ami mécène';
+        $this->membershipGreetingFemale = 'Chère Amie mécène';
+        break;
+      default:
+        $this->membershipGreetingMale = 'Cher Ami du mahJ';
+        $this->membershipGreetingFemale = 'Chère Amie du mahJ';
+    }
   }
 }

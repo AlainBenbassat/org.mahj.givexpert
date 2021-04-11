@@ -47,7 +47,8 @@ class CRM_Givexpert_OrderSync {
   }
 
   private function processOrder($order) {
-    if ($this->isOrderProcessed($order)) {
+    // skip invalid orders and already processed orders
+    if (!$this->isOrderValidated($order) || $this->isOrderProcessed($order)) {
       return;
     }
 
@@ -79,6 +80,15 @@ class CRM_Givexpert_OrderSync {
 
     $n = CRM_Core_DAO::singleValueQuery($sql, $sqlParams);
     if ($n >= 1) {
+      return TRUE;
+    }
+    else {
+      return FALSE;
+    }
+  }
+
+  private function isOrderValidated($order) {
+    if ($order->validated == 'Y') {
       return TRUE;
     }
     else {
@@ -174,7 +184,8 @@ class CRM_Givexpert_OrderSync {
         // create a contribution and link it to the membership
         $contrib->createMembershipContribution($membershipId, $contact->mainContactId, $order->id, $order->date, $this->getMembershipAmount($item), $order->currency);
 
-        // update the
+        // update the greeting
+        $contact->updateGreetings($membership->membershipGreetingMale, $membership->membershipGreetingFemale);
       }
     }
   }

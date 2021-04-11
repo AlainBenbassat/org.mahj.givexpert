@@ -1,6 +1,11 @@
 <?php
 
 class CRM_Givexpert_Contact {
+  private $NEWSLETTER_GROUP_ID = 10;
+  private $LOCATION_TYPE_ID_MAIN = 3;
+  private $PREFIX_ID_MR = 3;
+  private $PREFIX_ID_MS = 1;
+
   public $mainContactId = null;
   public $secondContactId = null;
 
@@ -15,6 +20,29 @@ class CRM_Givexpert_Contact {
     if (!$this->hasRelationship($contact1, $contact2, $relationshipTypeid)) {
       $this->createRelationship($contact1, $contact2, $relationshipTypeid);
     }
+  }
+
+  public function updateGreetings($membershipGreetingMale, $membershipGreetingFemale) {
+    $this->updateContactGreetings($this->mainContactId, $membershipGreetingMale, $membershipGreetingFemale);
+    if ($this->secondContactId) {
+      $this->updateContactGreetings($this->secondContactId, $membershipGreetingMale, $membershipGreetingFemale);
+    }
+  }
+
+  private function updateContactGreetings($contactId, $membershipGreetingMale, $membershipGreetingFemale) {
+    $gender = $this->getGender($contactId);
+    $greeting = ($gender == 'female') ? $membershipGreetingFemale : $membershipGreetingMale;
+
+    $params = [
+      'id' => $contactId,
+      'email_greeting_id' => 4, // custom
+      'postal_greeting_id' => 4, // custom
+      'email_greeting_custom' => $greeting,
+      'email_greeting_display' => $greeting,
+      'postal_greeting_custom' => $greeting,
+      'postal_greeting_display' => $greeting,
+    ];
+    civicrm_api3('Contact', 'create', $params);
   }
 
   private function hasRelationship($contact1, $contact2, $relationshipTypeId) {
@@ -111,6 +139,10 @@ class CRM_Givexpert_Contact {
     }
     else {
       $contactId = $this->getIndividualId($individualParam, $addressParam, $emailParam, $phoneParam);
+    }
+
+    If ($order->contact->has_newsletter) {
+      $this->addToNewsletterGroup($contactId);
     }
 
     return $contactId;
@@ -261,7 +293,7 @@ class CRM_Givexpert_Contact {
   private function extractAddressAsParam($contact) {
     $address = [];
 
-    $address['location_type_id'] = $contact->is_orga ? 2 : 1;
+    $address['location_type_id'] = $this->LOCATION_TYPE_ID_MAIN;
     $address['street_address'] = $contact->address_1;
     $address['supplemental_address_1'] = $contact->address_2;
     $address['supplemental_address_2'] = '';
@@ -279,10 +311,10 @@ class CRM_Givexpert_Contact {
     $individual['contact_type'] = 'Individual';
 
     if ($contact->title == 'M') {
-      $individual['prefix_id'] = 3;
+      $individual['prefix_id'] = $this->PREFIX_ID_MR;
     }
     elseif ($contact->title == 'MME' || $contact->title == 'MLLE') {
-      $individual['prefix_id'] = 2;
+      $individual['prefix_id'] = $this->PREFIX_ID_MS;
     }
 
     $individual['first_name'] = $contact->firstname;
@@ -297,7 +329,7 @@ class CRM_Givexpert_Contact {
     $email = [];
 
     $email['email'] = $contact->email;
-    $email['location_type_id'] = 1;
+    $email['location_type_id'] = $this->LOCATION_TYPE_ID_MAIN;
     $email['sequential'] = 1;
 
     return $email;
@@ -308,12 +340,22 @@ class CRM_Givexpert_Contact {
 
     if ($contact->phone) {
       $phone['phone'] = $contact->phone;
-      $phone['location_type_id'] = 1;
+      $phone['location_type_id'] = $this->LOCATION_TYPE_ID_MAIN;
       $phone['phone_type_id'] = 1;
       $phone['sequential'] = 1;
     }
 
     return $phone;
+  }
+
+  private function addToNewsletterGroup($contactId) {
+    $params = [
+      'sequential' => 1,
+      'contact_id' => $contactId,
+      'group_id' => $this->NEWSLETTER_GROUP_ID,
+      'status' => 'Added',
+    ];
+    civicrm_api3('GroupContact', 'create', $params);
   }
 
   private function getCountryId($isoCode) {
@@ -355,6 +397,19 @@ class CRM_Givexpert_Contact {
     if ($phoneParam) {
       $phoneParam['contact_id'] = $contactId;
       civicrm_api3('Phone', 'create', $phoneParam);
+    }
+  }
+
+  private function getGender($contactId) {
+    $prefixId = CRM_Core_DAO::singleValueQuery("select prefix_id from civicrm_contact where id = $contactId");
+    if ($prefixId == $this->PREFIX_ID_MR) {
+      return 'male';
+    }
+    elseif ($prefixId == $this->PREFIX_ID_MS) {
+      return 'female';
+    }
+    else {
+      return 'other';
     }
   }
 }
