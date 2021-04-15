@@ -38,9 +38,7 @@ class CRM_Givexpert_Contact {
       'email_greeting_id' => 4, // custom
       'postal_greeting_id' => 4, // custom
       'email_greeting_custom' => $greeting,
-      'email_greeting_display' => $greeting,
       'postal_greeting_custom' => $greeting,
-      'postal_greeting_display' => $greeting,
     ];
     civicrm_api3('Contact', 'create', $params);
   }
