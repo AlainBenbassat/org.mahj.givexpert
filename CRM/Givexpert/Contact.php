@@ -35,8 +35,8 @@ class CRM_Givexpert_Contact {
 
     $params = [
       'id' => $contactId,
-      'email_greeting_id' => 4, // custom
-      'postal_greeting_id' => 4, // custom
+      //'email_greeting_id' => 4, // custom
+      //'postal_greeting_id' => 4, // custom
       'email_greeting_custom' => $greeting,
       'postal_greeting_custom' => $greeting,
     ];
