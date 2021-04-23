@@ -281,11 +281,24 @@ class CRM_Givexpert_Contact {
     $contact = civicrm_api3('Contact', 'create', $individualParam);
     $contactId = $contact['values'][0]['id'];
 
+    // "normalize" the name
+    $this->transformName($contact);
+
     $this->createAddress($contactId, $addressParam);
     $this->createEmail($contactId, $emailParam);
     $this->createPhone($contactId, $phoneParam);
 
     return $contactId;
+  }
+
+  private function transformName($contact) {
+    try {
+      // call cividesk normalize to reformat the name
+      civicrm_api3('Contact', 'normalize', $contact);
+    }
+    catch (Exception $e) {
+      // not much we can do :-)
+    }
   }
 
   private function extractAddressAsParam($contact) {
