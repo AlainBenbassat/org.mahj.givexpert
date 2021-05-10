@@ -7,6 +7,7 @@ class CRM_Givexpert_Form_GivexpertAdmin extends CRM_Core_Form {
 
   public function __construct($state = NULL, $action = CRM_Core_Action::NONE, $method = 'post', $name = NULL) {
     $this->settings = new CRM_Givexpert_Settings();
+    $this->showVersion();
 
     parent::__construct($state, $action, $method, $name);
   }
@@ -84,6 +85,20 @@ class CRM_Givexpert_Form_GivexpertAdmin extends CRM_Core_Form {
       }
     }
     return $elementNames;
+  }
+
+  private function showVersion() {
+    try {
+      $extensionInfo = civicrm_api3('Extension', 'getsingle', [
+        'full_name' => 'org.mahj.givexpert',
+      ]);
+
+      $msg = 'GiveXpert Mahj - Version:' . $extensionInfo['version'] . ' (' . $extensionInfo['releaseDate'] . ')';
+      CRM_Core_Session::setStatus($msg, '', 'no-popup');
+    }
+    catch (Exception $e) {
+      // do nothing
+    }
   }
 
 }
