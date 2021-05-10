@@ -105,6 +105,7 @@ class CRM_Givexpert_Membership {
       'membership_type_id' => $membershipTypeId,
       'join_date' => $joinDate,
       'start_date' => $date,
+      'end_date' => CRM_Givexpert_Utils::addOneYearToDate($date),
     ];
     $result = civicrm_api3('Membership', 'create', $params);
 
@@ -140,11 +141,13 @@ class CRM_Givexpert_Membership {
   private function terminateAllMembershipsButSpecified($contactId, $date, $membershipId) {
     $dateWithoutTime = CRM_Givexpert_Utils::stripTime($date);
 
+    // set the status to cancelled
+    // set the end day to the given date, if after that date
     $sql = "
       update
         civicrm_membership
       set
-        end_date = %1
+        end_date = if(end_date > %1, %1, end_date)
         , status_id = {$this->MEMBERSHIP_STATUS_CANCELLED}
       where
         (contact_id = %2 or owner_membership_id = %2)

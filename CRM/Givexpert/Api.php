@@ -16,8 +16,7 @@ class CRM_Givexpert_Api {
     return $response->orders;
   }
 
-  private function sendRequest($apiFunc, $apiParams)
-  {
+  private function sendRequest($apiFunc, $apiParams) {
     // generate uri
     $username = $this->settings->getUsername();
     $token = $this->settings->getToken();
@@ -73,12 +72,5 @@ class CRM_Givexpert_Api {
 
     return TRUE;
   }
-
-  private function isResponseStatusOK($decodedResponse) {
-    if (is_object($decodedResponse) && property_exists($decodedResponse, 'statut')) {
-      if ($decodedResponse->statut == 'success') {}
-    }
-  }
-
 
 }

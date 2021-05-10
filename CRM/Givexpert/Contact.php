@@ -6,6 +6,9 @@ class CRM_Givexpert_Contact {
   private $PREFIX_ID_MR = 3;
   private $PREFIX_ID_MS = 1;
 
+  private $PHONE_TYPE_MOBILE = 2;
+  private $PHONE_TYPE_FIXED = 6;
+
   public $mainContactId = null;
   public $secondContactId = null;
 
@@ -33,14 +36,24 @@ class CRM_Givexpert_Contact {
     $gender = $this->getGender($contactId);
     $greeting = ($gender == 'female') ? $membershipGreetingFemale : $membershipGreetingMale;
 
-    $params = [
-      'id' => $contactId,
-      //'email_greeting_id' => 4, // custom
-      //'postal_greeting_id' => 4, // custom
-      'email_greeting_custom' => $greeting,
-      'postal_greeting_custom' => $greeting,
+    $sql = "
+      update
+        civicrm_contact
+      set
+        email_greeting_id = 4,
+        email_greeting_custom = %2,
+        email_greeting_display = %2,
+        postal_greeting_id = 4,
+        postal_greeting_custom = %2,
+        postal_greeting_display = %2
+      where
+        id = %1
+    ";
+    $sqlParams = [
+      1 => [$contactId, 'Integer'],
+      2 => [$greeting, 'String'],
     ];
-    civicrm_api3('Contact', 'create', $params);
+    CRM_Core_DAO::executeQuery($sql, $sqlParams);
   }
 
   private function hasRelationship($contact1, $contact2, $relationshipTypeId) {
@@ -169,9 +182,18 @@ class CRM_Givexpert_Contact {
   }
 
   private function getIndividualId($individualParam, $addressParam, $emailParam, $phoneParam) {
+    // find by name and email
     $contactId = $this->findIndividualIdByNameAndEmail($individualParam, $emailParam);
     if ($contactId == 0) {
-      $contactId = $this->findIndividualIdByNameAndEmailReversed($individualParam, $emailParam);
+      $contactId = $this->findIndividualIdBySwitchedNameAndEmail($individualParam, $emailParam);
+    }
+
+    // find by name and address
+    if ($contactId == 0) {
+      $contactId = $this->findIndividualIdByNameAndAddress($individualParam, $addressParam);
+      if ($contactId == 0) {
+        $contactId = $this->findIndividualIdBySwitchedNameAndAddress($individualParam, $addressParam);
+      }
     }
 
     if ($contactId == 0) {
@@ -179,6 +201,8 @@ class CRM_Givexpert_Contact {
     }
     else {
       $this->createOrUpdateAddress($contactId, $addressParam);
+      $this->createOrUpdatePhone($contactId, $phoneParam);
+      $this->createOrUpdateEmail($contactId, $emailParam);
     }
 
     return $contactId;
@@ -244,29 +268,37 @@ class CRM_Givexpert_Contact {
     return 0;
   }
 
-  private function findIndividualIdByNameAndEmailReversed($individualParam, $emailParam) {
+  private function findIndividualIdBySwitchedNameAndEmail($individualParam, $emailParam) {
+    $switchedIndividualParam = $this->switchFirstNameAndLastName($individualParam);
+    return $this->findIndividualIdByNameAndEmail($switchedIndividualParam, $emailParam);
+  }
+
+  private function findIndividualIdByNameAndAddress($individualParam, $addressParam) {
     $sql = "
       select
         c.id
       from
         civicrm_contact c
       inner join
-        civicrm_email e on c.id = e.contact_id
+        civicrm_address a on c.id = a.contact_id
       where
         c.first_name = %1
       and
         c.last_name = %2
       and
-        e.email = %3
+        a.street_address = %3
+      and
+        a.postal_code = %4
       and
         is_deleted = 0
       and
         contact_type = 'Individual'
     ";
     $sqlParams = [
-      1 => [$individualParam['last_name'], 'String'],
-      2 => [$individualParam['first_name'], 'String'],
-      3 => [$emailParam['email'], 'String'],
+      1 => [$individualParam['first_name'], 'String'],
+      2 => [$individualParam['last_name'], 'String'],
+      3 => [$addressParam['street_address'], 'String'],
+      4 => [$addressParam['postal_code'], 'String'],
     ];
 
     $dao = CRM_Core_DAO::executeQuery($sql, $sqlParams);
@@ -275,6 +307,19 @@ class CRM_Givexpert_Contact {
     }
 
     return 0;
+  }
+
+  private function findIndividualIdBySwitchedNameAndAddress($individualParam, $addressParam) {
+    $switchedIndividualParam = $this->switchFirstNameAndLastName($individualParam);
+    return $this->findIndividualIdByNameAndAddress($switchedIndividualParam, $addressParam);
+  }
+
+  private function switchFirstNameAndLastName($individualParam) {
+    $switchedIndividualParam = [
+      'first_name' =>  $individualParam['last_name'],
+      'last_name' => $individualParam['first_name'],
+    ];
+    return $switchedIndividualParam;
   }
 
   private function createIndividual($individualParam, $addressParam, $emailParam, $phoneParam) {
@@ -352,11 +397,37 @@ class CRM_Givexpert_Contact {
     if ($contact->phone) {
       $phone['phone'] = $contact->phone;
       $phone['location_type_id'] = $this->LOCATION_TYPE_ID_MAIN;
-      $phone['phone_type_id'] = 1;
+      $phone['phone_type_id'] = $this->getPhoneType($contact->phone);
       $phone['sequential'] = 1;
     }
 
     return $phone;
+  }
+
+  private function getPhoneType($phone) {
+    if ($this->isMobilePhoneNumber($phone)) {
+      return $this->PHONE_TYPE_MOBILE;
+    }
+    else {
+      return $this->PHONE_TYPE_FIXED;
+    }
+  }
+
+  private function isMobilePhoneNumber($phone) {
+    // remove spaces, +, .
+    $strippedPhone = preg_replace('/[ +.]+/', '', $phone);
+
+    // it's a mobile phone if the number starts with:
+    $mobilePhonePrefixes = ['06', '07', '336', '337'];
+
+    // check if the phone number starts with on of the above prefixes
+    foreach ($mobilePhonePrefixes as $mobilePhonePrefix) {
+      if (strpos($strippedPhone, $mobilePhonePrefix) === 0) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
   private function addToNewsletterGroup($contactId) {
@@ -392,8 +463,40 @@ class CRM_Givexpert_Contact {
     }
   }
 
+  private function createOrUpdatePhone($contactId, $phoneParam) {
+    if ($phoneParam) {
+      // if the contact has a primary phone, add the phone id so the create will perform an update
+      $phoneId = $this->getPrimaryPhoneId($contactId);
+      if ($phoneId) {
+        $phoneParam['id'] = $phoneId;
+      }
+      $this->createPhone($contactId, $phoneParam);
+    }
+  }
+
+  private function createOrUpdateEmail($contactId, $emailParam) {
+    if ($emailParam) {
+      // if the contact has a primary email, add the email id so the create will perform an update
+      $emailId = $this->getPrimaryEmailId($contactId);
+      if ($emailId) {
+        $emailParam['id'] = $emailId;
+      }
+      $this->createEmail($contactId, $emailParam);
+    }
+  }
+
   private function getPrimaryAddressId($contactId) {
     $sql = "select id from civicrm_address where contact_id = $contactId and is_primary = 1";
+    return CRM_Core_DAO::singleValueQuery($sql);
+  }
+
+  private function getPrimaryPhoneId($contactId) {
+    $sql = "select id from civicrm_phone where contact_id = $contactId and is_primary = 1";
+    return CRM_Core_DAO::singleValueQuery($sql);
+  }
+
+  private function getPrimaryEmailId($contactId) {
+    $sql = "select id from civicrm_email where contact_id = $contactId and is_primary = 1";
     return CRM_Core_DAO::singleValueQuery($sql);
   }
 

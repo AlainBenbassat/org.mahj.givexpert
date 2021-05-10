@@ -72,20 +72,4 @@ class CRM_Givexpert_Contribution {
 
     return $contribId;
   }
-
-  /*
-  private function createSoftContribution($order, $contributionId, $softContributionContactId) {
-    $params = [
-      'sequential' => 1,
-      'contact_id' => $softContributionContactId,
-      'contribution_id' => $contributionId,
-      'amount' => $order->amount,
-      'currency' => $order->currency,
-    ];
-
-    $result = civicrm_api3('ContributionSoft', 'create', $params);
-    return $result['values'][0]['id'];
-  }
-  */
-
 }
