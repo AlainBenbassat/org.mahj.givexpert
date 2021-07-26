@@ -1,44 +1,17 @@
 # org.mahj.givexpert
 
-![Screenshot](/images/screenshot.png)
+Synchronisation GiveXpert - MAHJ
 
-(*FIXME: In one or two paragraphs, describe what the extension does and why one would download it. *)
+## Écran de configuration
 
-The extension is licensed under [AGPL-3.0](LICENSE.txt).
+http://SITE-MAHJ/civicrm/givexpert-admin
 
-## Requirements
+## Écran de synchronisation manuelle
 
-* PHP v7.0+
-* CiviCRM (*FIXME: Version number*)
+http://SITE-MAHJ/civicrm/givexpert-run
 
-## Installation (Web UI)
+## API pour synchronisation automatique
 
-This extension has not yet been published for installation via the web UI.
+Givexpert.Syncorders
 
-## Installation (CLI, Zip)
-
-Sysadmins and developers may download the `.zip` file for this extension and
-install it with the command-line tool [cv](https://github.com/civicrm/cv).
-
-```bash
-cd <extension-dir>
-cv dl org.mahj.givexpert@https://github.com/FIXME/org.mahj.givexpert/archive/master.zip
-```
-
-## Installation (CLI, Git)
-
-Sysadmins and developers may clone the [Git](https://en.wikipedia.org/wiki/Git) repo for this extension and
-install it with the command-line tool [cv](https://github.com/civicrm/cv).
-
-```bash
-git clone https://github.com/FIXME/org.mahj.givexpert.git
-cv en givexpert
-```
-
-## Usage
-
-(* FIXME: Where would a new user navigate to get started? What changes would they see? *)
-
-## Known Issues
-
-(* FIXME *)
+À ajouter au travaux programmés avec une fréquence d'exécution journalière.
