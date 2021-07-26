@@ -169,6 +169,10 @@ class CRM_Givexpert_Contact {
 
     $contactId = $this->getIndividualId($individualParam, $addressParam, $emailParam, $phoneParam);
 
+    If ($order->contact_payer->has_newsletter) {
+      $this->addToNewsletterGroup($contactId);
+    }
+
     return $contactId;
   }
 
