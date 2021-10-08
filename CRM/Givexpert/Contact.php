@@ -146,7 +146,7 @@ class CRM_Givexpert_Contact {
       $contactId = $this->getOrganizationId($order->contact->organism, $addressParam);
 
       $individualParam['employer_id'] = $contactId;
-      $this->getIndividualId($individualParam, [], $emailParam, $phoneParam);
+      $this->getIndividualId($individualParam, $addressParam, $emailParam, $phoneParam);
     }
     else {
       $contactId = $this->getIndividualId($individualParam, $addressParam, $emailParam, $phoneParam);
