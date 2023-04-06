@@ -1,7 +1,8 @@
 <?php
 
 class CRM_Givexpert_Contact {
-  private $NEWSLETTER_GROUP_ID = 10;
+  private $NEWSLETTER_GROUP_ID = 339;
+  private $AGENDA_GROUP_ID = 340;
   private $LOCATION_TYPE_ID_MAIN = 3;
   private $PREFIX_ID_MR = 3;
   private $PREFIX_ID_MS = 1;
@@ -439,6 +440,14 @@ class CRM_Givexpert_Contact {
       'sequential' => 1,
       'contact_id' => $contactId,
       'group_id' => $this->NEWSLETTER_GROUP_ID,
+      'status' => 'Added',
+    ];
+    civicrm_api3('GroupContact', 'create', $params);
+
+    $params = [
+      'sequential' => 1,
+      'contact_id' => $contactId,
+      'group_id' => $this->AGENDA_GROUP_ID,
       'status' => 'Added',
     ];
     civicrm_api3('GroupContact', 'create', $params);
