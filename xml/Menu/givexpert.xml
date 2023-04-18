@@ -12,4 +12,10 @@
     <title>Run</title>
     <access_arguments>access CiviCRM</access_arguments>
   </item>
+  <item>
+    <path>civicrm/givexpert-sync-order</path>
+    <page_callback>CRM_Givexpert_Form_GivexpertSyncOrder</page_callback>
+    <title>GivexpertSyncOrder</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
 </menu>

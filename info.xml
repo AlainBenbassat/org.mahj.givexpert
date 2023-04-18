@@ -2,7 +2,7 @@
 <extension key="org.mahj.givexpert" type="module">
   <file>givexpert</file>
   <name>org.mahj.givexpert</name>
-  <description>Intégration GiveXpert pour MAHJ</description>
+  <description>Int&#xE9;gration GiveXpert pour MAHJ</description>
   <license>AGPL-3.0</license>
   <maintainer>
     <author>Alain Benbassat</author>
@@ -19,11 +19,16 @@
   <compatibility>
     <ver>5.0</ver>
   </compatibility>
-  <comments></comments>
+  <comments/>
   <classloader>
     <psr4 prefix="Civi\" path="Civi"/>
+    <psr0 prefix="CRM_" path="."/>
   </classloader>
   <civix>
     <namespace>CRM/Givexpert</namespace>
+    <format>22.10.0</format>
   </civix>
+  <mixins>
+    <mixin>menu-xml@1.0.0</mixin>
+  </mixins>
 </extension>
