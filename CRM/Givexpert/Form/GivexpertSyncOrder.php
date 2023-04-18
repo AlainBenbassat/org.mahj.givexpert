@@ -4,7 +4,7 @@ use CRM_Givexpert_ExtensionUtil as E;
 
 class CRM_Givexpert_Form_GivexpertSyncOrder extends CRM_Core_Form {
   public function buildQuickForm() {
-    $this->setTitle('Synchroniser un don GiveXpert spćifique');
+    $this->setTitle('Synchroniser un don GiveXpert spécifique');
 
     $this->addFormFields();
     $this->addFormButtons();
